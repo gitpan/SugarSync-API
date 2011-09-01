@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Aug 30 12:44:57 2011
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Aug 31 20:51:33 2011
-# Update Count    : 78
+# Last Modified On: Thu Sep  1 08:06:01 2011
+# Update Count    : 83
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -57,6 +57,10 @@ my $TMPDIR = $ENV{TMPDIR} || $ENV{TEMP} || '/usr/tmp';
 use SugarSync::API;
 use Config::Tiny;
 
+warn("$my_name $my_version started\n") if $verbose;
+
+my ( $f_total, $f_count, $c_total, $c_count, $f_ok, $f_ts, $f_dl ); # statistics
+
 # Load config data.
 my $cfg = Config::Tiny->read($config);
 
@@ -66,6 +70,21 @@ my $so = SugarSync::API->new( $cfg->{auth}->{username},
 my $shares = $so->get_receivedShares;
 foreach my $share ( @$shares ) {
     process_share($share);
+}
+
+if ( $verbose ) {
+    warn("$my_name $my_version finished\n");
+    my $st = sub {
+	return unless $_[1];
+	warn( sprintf( "%-30s %6d\n", $_[0], $_[1] ) );
+    };
+    $st->( "Total number of folders:"	  , $c_total );
+    $st->( "Number of folders processed:" , $c_count );
+    $st->( "Total number of files:"	  , $f_total );
+    $st->( "Number of files processed:"	  , $f_count );
+    $st->( "Number of files OK:"	  , $f_ok    );
+    $st->( "Number of files utimed:"	  , $f_ts    );
+    $st->( "Number of files downloaded:"  , $f_dl    );
 }
 
 ################ Subroutines ################
@@ -91,8 +110,10 @@ sub process_share {
     warn Data::Dumper->Dump([$c],[qw(collections)]) if $debug;
 
     foreach my $coll ( @$c ) {
+	$c_total++;
 	# Handle select/resume.
 	next unless selectresume( $coll->{displayName}, 1 );
+	$c_count++;
 
 	process_collection( [ $r->{displayName} ], $coll );
     }
@@ -114,8 +135,10 @@ sub process_collection {
 	    my $c = $c->{collection};
 	    $c = [ $c ] unless UNIVERSAL::isa( $c, 'ARRAY' );
 	    foreach my $coll ( @$c ) {
+		$c_total++;
 		# Handle select/resume.
 		next unless selectresume( $coll->{displayName}, $depth );
+		$c_count++;
 
 		# Recurse.
 		process_collection( $path, $coll );
@@ -126,10 +149,12 @@ sub process_collection {
 	    my $c = $c->{file};
 	    $c = [ $c ] unless UNIVERSAL::isa( $c, 'ARRAY' );
 	    foreach my $file ( @$c ) {
+		$f_total++;
 		# Handle select/resume.
 		next unless wc_match( $file->{displayName}, $resume[$depth] );
 		next unless wc_match( $file->{displayName}, $select[$depth] );
 		$resume[$depth] = '';
+		$f_count++;
 
 		my $fn = join( "/", @$path, $file->{displayName} );
 		warn( $fn, "\n" ) if $verbose > 1;
@@ -143,6 +168,7 @@ sub process_collection {
 			# Local file exists with the same size/mtime.
 			warn( "    OK ", $mtime, " ", $file->{size}, "\n" )
 			  if $verbose > 1;
+			$f_ok++;
 			next;
 		    }
 		    elsif ( 0 and $st[7] == $file->{size} ) {
@@ -151,6 +177,7 @@ sub process_collection {
 			utime( $mtime, $mtime, $fn ) or warn("utime($fn): $!\n");
 			warn( "    Updated timestamp $st[9] -> ", $mtime, " ",
 			      $file->{size}, "\n" ) if $verbose > 1;
+			$f_ts++;
 			next;
 		    }
 		    else {
@@ -163,6 +190,7 @@ sub process_collection {
 
 		# Download the file.
 		save_file( $fn, $file->{fileData}, $mtime );
+		$f_dl++;
 	    }
 	}
     }

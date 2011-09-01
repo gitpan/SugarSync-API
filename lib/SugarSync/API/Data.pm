@@ -40,7 +40,7 @@ The result is a small XML data package.
     <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <authorization>
       <expiration>2011-08-31T05:15:57.516-07:00</expiration>
-      <user>https://api.sugarsync.com/user/1665757</user>
+      <user>https://api.sugarsync.com/user/123456</user>
     </authorization>
 
 Most important is the Location: header of the result:
@@ -86,18 +86,18 @@ Returns:
 	 'limit' => '6039797760'
       },
       'salt' => 'C2c4DA==',
-      'webArchive' => 'https://api.sugarsync.com/folder/:sc:1665757:1',
-      'publicLinks' => 'https://api.sugarsync.com/user/1665757/publicLinks/contents',
-      'mobilePhotos' => 'https://api.sugarsync.com/folder/:sc:1665757:3',
-      'nickname' => 'jvromanssq',
-      'deleted' => 'https://api.sugarsync.com/folder/:sc:1665757:9',
-      'albums' => 'https://api.sugarsync.com/user/1665757/albums/contents',
-      'username' => 'jvromans+ss@squirrel.nl',
-      'receivedShares' => 'https://api.sugarsync.com/user/1665757/receivedShares/contents',
-      'magicBriefcase' => 'https://api.sugarsync.com/folder/:sc:1665757:2',
-      'workspaces' => 'https://api.sugarsync.com/user/1665757/workspaces/contents',
-      'syncfolders' => 'https://api.sugarsync.com/user/1665757/folders/contents',
-      'recentActivities' => 'https://api.sugarsync.com/user/1665757/recentActivities/contents'
+      'webArchive' => 'https://api.sugarsync.com/folder/:sc:123456:1',
+      'publicLinks' => 'https://api.sugarsync.com/user/123456/publicLinks/contents',
+      'mobilePhotos' => 'https://api.sugarsync.com/folder/:sc:123456:3',
+      'nickname' => 'happyreader',
+      'deleted' => 'https://api.sugarsync.com/folder/:sc:123456:9',
+      'albums' => 'https://api.sugarsync.com/user/123456/albums/contents',
+      'username' => 'happyreader@example.com',
+      'receivedShares' => 'https://api.sugarsync.com/user/123456/receivedShares/contents',
+      'magicBriefcase' => 'https://api.sugarsync.com/folder/:sc:123456:2',
+      'workspaces' => 'https://api.sugarsync.com/user/123456/workspaces/contents',
+      'syncfolders' => 'https://api.sugarsync.com/user/123456/folders/contents',
+      'recentActivities' => 'https://api.sugarsync.com/user/123456/recentActivities/contents'
     };
 
 =head3 receivedShares
@@ -109,7 +109,7 @@ Returns:
     {
       'receivedShare' => [
 	{
-	  'owner' => 'https://api.sugarsync.com/contact/1665757/1662682',
+	  'owner' => 'https://api.sugarsync.com/contact/123456/654321',
 	  'permissions' => {
 	    'readAllowed' => {
 	      'enabled' => 'true'
@@ -119,8 +119,8 @@ Returns:
 	    }
 	  },
 	  'timeReceived' => '2011-08-21T06:00:14.000-07:00',
-	  'ref' => 'https://api.sugarsync.com/receivedShare/1665757/:sc:1662682:186_8178842',
-	  'sharedFolder' => 'https://api.sugarsync.com/folder/:sc:1662682:186_8178842',
+	  'ref' => 'https://api.sugarsync.com/receivedShare/123456/:sc:654321:186_8178842',
+	  'sharedFolder' => 'https://api.sugarsync.com/folder/:sc:654321:186_8178842',
 	  'displayName' => 'boeken'
 	}
       ]
@@ -132,7 +132,7 @@ Returns slightly more detailed data for the shared folder.
 
     {
       'sharing' => {
-	'shareList' => 'https://api.sugarsync.com/sharelist/:sc:1662682:186_8178842',
+	'shareList' => 'https://api.sugarsync.com/sharelist/:sc:654321:186_8178842',
 	'readAllowed' => {
 	  'enabled' => 'true'
 	},
@@ -141,11 +141,11 @@ Returns slightly more detailed data for the shared folder.
 	},
 	'enabled' => 'true'
       },
-      'parent' => 'https://api.sugarsync.com/folder/:sc:1662682:2',
-      'files' => 'https://api.sugarsync.com/folder/:sc:1662682:186_8178842/contents?type=file',
-      'collections' => 'https://api.sugarsync.com/folder/:sc:1662682:186_8178842/contents?type=folder',
-      'contents' => 'https://api.sugarsync.com/folder/:sc:1662682:186_8178842/contents',
-      'dsid' => '/sc/1662682/186_8178842',
+      'parent' => 'https://api.sugarsync.com/folder/:sc:654321:2',
+      'files' => 'https://api.sugarsync.com/folder/:sc:654321:186_8178842/contents?type=file',
+      'collections' => 'https://api.sugarsync.com/folder/:sc:654321:186_8178842/contents?type=folder',
+      'contents' => 'https://api.sugarsync.com/folder/:sc:654321:186_8178842/contents',
+      'dsid' => '/sc/654321/186_8178842',
       'timeCreated' => '2011-08-20T10:41:52.000-07:00',
       'displayName' => 'boeken'
     };
@@ -157,24 +157,24 @@ folders:
     {
       'collection' => [
 	{
-	  'ref' => 'https://api.sugarsync.com/folder/:sc:1662682:186_8179242',
-	  'contents' => 'https://api.sugarsync.com/folder/:sc:1662682:186_8179242/contents',
+	  'ref' => 'https://api.sugarsync.com/folder/:sc:654321:186_8179242',
+	  'contents' => 'https://api.sugarsync.com/folder/:sc:654321:186_8179242/contents',
 	  'type' => 'folder',
 	  'displayName' => 'AA'
 	},
 	{
-	  'ref' => 'https://api.sugarsync.com/folder/:sc:1662682:4497561_97048',
-	  'contents' => 'https://api.sugarsync.com/folder/:sc:1662682:4497561_97048/contents',
+	  'ref' => 'https://api.sugarsync.com/folder/:sc:654321:4497561_97048',
+	  'contents' => 'https://api.sugarsync.com/folder/:sc:654321:4497561_97048/contents',
 	  'type' => 'folder',
 	  'displayName' => 'BB'
 	},
       ],
       'file' => {
-          'fileData' => 'https://api.sugarsync.com/file/:sc:1662682:4497561_327763/data',
+          'fileData' => 'https://api.sugarsync.com/file/:sc:654321:4497561_327763/data',
           'lastModified' => '2011-08-28T23:03:48.000-07:00',
           'presentOnServer' => 'true',
           'mediaType' => 'application/octet-stream',
-          'ref' => 'https://api.sugarsync.com/file/:sc:1662682:4497561_327763',
+          'ref' => 'https://api.sugarsync.com/file/:sc:654321:4497561_327763',
           'size' => '695067',
           'displayName' => 'De woorden van Babel - Andreu Carranza.epub'
       },

@@ -1,5 +1,9 @@
 Revision history for SugarSync-API
 
+0.03	2011-09-01
+	Add script statistics.
+	Documentation updates.
+
 0.02	2011-08-31
 	Mirror script is functional.
 	First public release.

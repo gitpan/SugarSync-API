@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Aug 30 12:44:57 2011
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Aug 31 13:06:03 2011
-# Update Count    : 30
+# Last Modified On: Thu Sep  1 08:38:10 2011
+# Update Count    : 31
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -44,8 +44,8 @@ my $TMPDIR = $ENV{TMPDIR} || $ENV{TEMP} || '/usr/tmp';
 
 use SugarSync::API;
 
-my $username = 'jvromans+ss@squirrel.nl';
-my $password = 'x7M0F0c3A4F8G8A0a7n4';
+my $username = 'xxxxxxxxxxxx';
+my $password = 'yyyyyyyyyyyy';
 
 die("Nothing to test -- spcify URLs on the command line\n")
   unless @ARGV || $show_location;
