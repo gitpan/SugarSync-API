@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Aug 30 12:44:57 2011
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Sep  1 08:06:01 2011
-# Update Count    : 83
+# Last Modified On: Thu Sep  1 20:42:24 2011
+# Update Count    : 108
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -15,7 +15,7 @@ use warnings;
 # Package name.
 my $my_package = 'SugarSync';
 # Program name and version.
-my ($my_name, $my_version) = qw( mirror_share 0.01 );
+my ($my_name, $my_version) = qw( mirror_share 0.03 );
 
 ################ Command line parameters ################
 
@@ -26,7 +26,8 @@ my $select;
 my $resume;
 my $verbose = 1;		# verbose processing
 my $config = $ENV{HOME} . "/.config/sugarsync/config";
-my $timestamps = 1;
+my $timestamps = 1;		# logging with timestamps
+my $delete;			# delete local files not on share
 
 # Development options (not shown with -help).
 my $debug = 0;			# debugging
@@ -59,7 +60,9 @@ use Config::Tiny;
 
 warn("$my_name $my_version started\n") if $verbose;
 
-my ( $f_total, $f_count, $c_total, $c_count, $f_ok, $f_ts, $f_dl ); # statistics
+my ( $f_total, $f_count, $f_ok, $f_ts, $f_dl ); # statistics
+my ( $c_total, $c_count ); # statistics
+my ( $d_count ); # statistics
 
 # Load config data.
 my $cfg = Config::Tiny->read($config);
@@ -85,12 +88,14 @@ if ( $verbose ) {
     $st->( "Number of files OK:"	  , $f_ok    );
     $st->( "Number of files utimed:"	  , $f_ts    );
     $st->( "Number of files downloaded:"  , $f_dl    );
+    $st->( "Number of files ".($delete ? "deleteed" : "to delete").":",
+	   $d_count );
 }
 
 ################ Subroutines ################
 
 use File::Basename;
-use File::Path qw(make_path);
+use File::Path qw(make_path remove_tree);
 
 sub process_share {
     my ( $share ) = @_;
@@ -109,7 +114,10 @@ sub process_share {
     my $c = $so->get_collections( $r->{collections} );
     warn Data::Dumper->Dump([$c],[qw(collections)]) if $debug;
 
+    my $files = get_filelist( $r->{displayName} );
+
     foreach my $coll ( @$c ) {
+	delete( $files->{$coll->{displayName}} );
 	$c_total++;
 	# Handle select/resume.
 	next unless selectresume( $coll->{displayName}, 1 );
@@ -117,6 +125,8 @@ sub process_share {
 
 	process_collection( [ $r->{displayName} ], $coll );
     }
+
+    delete_files( $files, $r->{displayName} );
 }
 
 sub process_collection {
@@ -129,12 +139,14 @@ sub process_collection {
     if ( $r->{type} eq 'folder' ) {
 	# Folder. Get its contents.
 	my $c = $so->get_url_xml( $r->{contents} );
+	my $files = get_filelist( join( "/", @$path ) );
 
 	# Folders can contain folders, and files. Process folders first.
 	if ( $c->{collection} ) {
 	    my $c = $c->{collection};
 	    $c = [ $c ] unless UNIVERSAL::isa( $c, 'ARRAY' );
 	    foreach my $coll ( @$c ) {
+		delete( $files->{$coll->{displayName}} );
 		$c_total++;
 		# Handle select/resume.
 		next unless selectresume( $coll->{displayName}, $depth );
@@ -149,11 +161,10 @@ sub process_collection {
 	    my $c = $c->{file};
 	    $c = [ $c ] unless UNIVERSAL::isa( $c, 'ARRAY' );
 	    foreach my $file ( @$c ) {
+		delete( $files->{$file->{displayName}} );
 		$f_total++;
 		# Handle select/resume.
-		next unless wc_match( $file->{displayName}, $resume[$depth] );
-		next unless wc_match( $file->{displayName}, $select[$depth] );
-		$resume[$depth] = '';
+		next unless selectresume( $file->{displayName}, $depth );
 		$f_count++;
 
 		my $fn = join( "/", @$path, $file->{displayName} );
@@ -193,6 +204,8 @@ sub process_collection {
 		$f_dl++;
 	    }
 	}
+
+	delete_files( $files, join( "/", @$path ) );
     }
 
     else {
@@ -219,6 +232,36 @@ sub save_file {
     close($fd) or croak("$fn: $!\n");
     utime( $mtime, $mtime, $fn ) or warn("utime($fn): $!\n");
     print STDERR ("done ", $mtime, " ", length($data), "\n") if $verbose;
+}
+
+sub get_filelist {
+    my ( $dir ) = @_;
+    my %files;
+    if ( opendir( D, $dir ) ) {
+	while ( readdir(D) ) {
+	    next if /^\.\.?$/;
+	    $files{$_} = 1;
+	}
+	closedir(D);
+    }
+    \%files;
+}
+
+sub delete_files {
+    my ( $files, $path ) = @_;
+    foreach ( sort keys(%$files) ) {
+	my $fn = join( "/", $path, $_ );
+	warn("$fn\n");
+	if ( $delete ) {
+	    remove_tree( $fn, { verbose => $verbose>1 } )
+	      ? warn("    Deleted\n")
+	      : warn("    Cannot delete ($!)\n");
+	}
+	else {
+	    warn("    Needs deleting\n");
+	}
+	$d_count++;
+    }
 }
 
 sub ts {
@@ -288,6 +331,7 @@ sub app_options {
 		   'select=s'	=> \$select,
 		   'resume=s'	=> \$resume,
 		   'config=s'	=> \$config,
+		   'delete'	=> \$delete,
 		   'verbose+'	=> \$verbose,
 		   'quiet'	=> sub { $verbose = 0 },
 		   'trace'	=> \$trace,
@@ -321,6 +365,7 @@ mirror_sync [options]
    --select XXX		select this path only
    --resume XXX		resume a sync run at this point
    --config XXX		alternate config file.
+   --delete		delete local files not on the share
    --ident		show identification
    --help		brief help message
    --man                full documentation
@@ -354,6 +399,10 @@ Alternate config file.
 Default config file is $HOME/.config/sugarsync/config .
 
 This should contain the username and password for Sugarsync.
+
+=item B<--delete>
+
+Delete local files and folders that are not on the share.
 
 =item B<--help>
 

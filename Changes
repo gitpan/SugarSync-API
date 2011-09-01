@@ -1,5 +1,8 @@
 Revision history for SugarSync-API
 
+0.04	2011-09-01
+	Delete local files and folders that are not on the share.
+
 0.03	2011-09-01
 	Add script statistics.
 	Documentation updates.

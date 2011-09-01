@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Aug 30 12:44:57 2011
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Sep  1 08:38:10 2011
-# Update Count    : 31
+# Last Modified On: Thu Sep  1 09:27:17 2011
+# Update Count    : 34
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -15,7 +15,7 @@ use warnings;
 # Package name.
 my $my_package = 'SugarSync';
 # Program name and version.
-my ($my_name, $my_version) = qw( test 0.01 );
+my ($my_name, $my_version) = qw( test 0.02 );
 
 ################ Command line parameters ################
 
@@ -23,6 +23,7 @@ use Getopt::Long 2.13;
 
 # Command line options.
 my $verbose = 0;		# verbose processing
+my $config = $ENV{HOME} . "/.config/sugarsync/config";
 my $show_location = 0;
 
 # Development options (not shown with -help).
@@ -43,14 +44,17 @@ my $TMPDIR = $ENV{TMPDIR} || $ENV{TEMP} || '/usr/tmp';
 ################ The Process ################
 
 use SugarSync::API;
-
-my $username = 'xxxxxxxxxxxx';
-my $password = 'yyyyyyyyyyyy';
+use Config::Tiny;
 
 die("Nothing to test -- spcify URLs on the command line\n")
   unless @ARGV || $show_location;
 
-my $so = SugarSync::API->new( $username, $password );
+# Load config data.
+my $cfg = Config::Tiny->read($config);
+
+my $so = SugarSync::API->new( $cfg->{auth}->{username},
+			      $cfg->{auth}->{password} );
+
 warn("Location: ", $so->{_auth}, "\n") if $show_location;
 
 foreach ( @ARGV ) {
@@ -74,7 +78,8 @@ sub app_options {
     # Process options.
     if ( @ARGV > 0 ) {
 	GetOptions('ident'	=> \$ident,
-		   'show-location' => \$show_location,
+		   'show-location|s' => \$show_location,
+		   'config=s'	=> \$config,
 		   'verbose'	=> \$verbose,
 		   'trace'	=> \$trace,
 		   'help|?'	=> \$help,
@@ -97,21 +102,35 @@ __END__
 
 =head1 NAME
 
-sample - skeleton for GetOpt::Long and Pod::Usage
+test - SugarSync API tester
 
 =head1 SYNOPSIS
 
-sample [options] [file ...]
+test [options] url ...
 
  Options:
-   -ident		show identification
-   -help		brief help message
-   -man                 full documentation
-   -verbose		verbose information
+   --show-auth -s	show authorization token
+   --config=XXX		altenative config file
+   --ident		show identification
+   --help		brief help message
+   --man                full documentation
+   --verbose		verbose information
 
 =head1 OPTIONS
 
 =over 8
+
+=item B<--show-auth> B<-s>
+
+Show the authorization token.
+
+=item B<--config> I<file>
+
+Alternate config file.
+
+Default config file is $HOME/.config/sugarsync/config .
+
+This should contain the username and password for Sugarsync.
 
 =item B<-help>
 
@@ -137,7 +156,45 @@ Input file(s).
 
 =head1 DESCRIPTION
 
-B<This program> will read the given input file(s) and do someting
-useful with the contents thereof.
+B<This program> will authorize for SugarSync access and retrieve the
+specified urls. The urls are assumed to return XML data which is shows
+as a Perl structure.
+
+With option <--show-auth> it will also show the authorization token.
+In this case, specifying urls is optional.
+
+=head1 CONFIG FILE
+
+A config file is required to store the username and password for
+SugarSync access.
+
+By default, the config file is C<.config/sugarsync/config> in the
+users home directory. An alternative config file can be selected with
+the B<--config> command line option.
+
+The config file should contain:
+
+  [auth]
+  username = your_sugarsync_user_name
+  password = your_sugarsync_password
+
+=SEE ALSO
+
+L<SugarSync::API>.
+
+=head1 AUTHOR
+
+Johan Vromans, C<< <jv at cpan.org> >>
+
+=head1 BUGS & SUPPORT
+
+See L<SugarSync::API>.
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2011 Johan Vromans, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
 
 =cut
