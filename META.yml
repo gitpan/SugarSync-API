@@ -15,7 +15,7 @@ name: SugarSync-API
 provides:
   SugarSync::API:
     file: lib/SugarSync/API.pm
-    version: 0.04
+    version: 0.05
 requires:
   Carp: 0
   Config::Tiny: 0
@@ -28,4 +28,4 @@ requires:
   XML::Simple: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.04
+version: 0.05

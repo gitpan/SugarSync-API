@@ -21,7 +21,7 @@ SugarSync::API - Basic API to SugarSync cloud file sharing.
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 SYNOPSIS
 

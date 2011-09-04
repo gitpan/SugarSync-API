@@ -1,14 +1,17 @@
 Revision history for SugarSync-API
 
+0.05	2011-09-04
+	(mirror_share) Fix problem with directory creation.
+
 0.04	2011-09-01
-	Delete local files and folders that are not on the share.
+	(mirror_share) Delete local files and folders that are not on the share.
 
 0.03	2011-09-01
-	Add script statistics.
+	(mirror_share) Add script statistics.
 	Documentation updates.
 
 0.02	2011-08-31
-	Mirror script is functional.
+	(mirror_share) Mirror script is functional.
 	First public release.
 
 0.01    2011-08-30

@@ -3,19 +3,20 @@
 # Author          : Johan Vromans
 # Created On      : Tue Aug 30 12:44:57 2011
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Sep  1 20:42:24 2011
-# Update Count    : 108
+# Last Modified On: Sun Sep  4 10:31:18 2011
+# Update Count    : 112
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
 
 use strict;
 use warnings;
+use Carp;
 
 # Package name.
 my $my_package = 'SugarSync';
 # Program name and version.
-my ($my_name, $my_version) = qw( mirror_share 0.03 );
+my ($my_name, $my_version) = qw( mirror_share 0.04 );
 
 ################ Command line parameters ################
 
@@ -219,15 +220,15 @@ sub process_collection {
 sub save_file {
     my ( $fn, $url, $mtime ) = @_;
 
-    my $dir = basename($fn);
+    my $dir = dirname($fn);
     make_path( $dir, { verbose => $verbose>1 } ) unless -d $dir;
+    open( my $fd, '>', $fn ) or croak("$fn: $!\n");
 
     # Download the file.
     print STDERR ( ts(), "    Downloading... ") if $verbose;
     my $data = $so->get_url_data($url);
 
     # Save to disk.
-    open( my $fd, '>', $fn ) or croak("$fn: $!\n");
     print { $fd } $data;
     close($fd) or croak("$fn: $!\n");
     utime( $mtime, $mtime, $fn ) or warn("utime($fn): $!\n");
