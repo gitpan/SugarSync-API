@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Aug 30 12:44:57 2011
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Sep  4 10:31:18 2011
-# Update Count    : 112
+# Last Modified On: Tue Oct 18 09:25:28 2011
+# Update Count    : 138
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -16,7 +16,7 @@ use Carp;
 # Package name.
 my $my_package = 'SugarSync';
 # Program name and version.
-my ($my_name, $my_version) = qw( mirror_share 0.04 );
+my ($my_name, $my_version) = qw( mirror_share 0.05 );
 
 ################ Command line parameters ################
 
@@ -40,6 +40,7 @@ app_options();
 
 # Post-processing.
 $trace |= ($debug || $test);
+$verbose = 99 if $debug;
 
 my @select = wc_compile($select) if $select;
 my @resume = wc_compile($resume) if $resume;
@@ -61,7 +62,7 @@ use Config::Tiny;
 
 warn("$my_name $my_version started\n") if $verbose;
 
-my ( $f_total, $f_count, $f_ok, $f_ts, $f_dl ); # statistics
+my ( $f_total, $f_count, $f_ok, $f_ts, $f_dl, $f_miss ); # statistics
 my ( $c_total, $c_count ); # statistics
 my ( $d_count ); # statistics
 
@@ -89,7 +90,8 @@ if ( $verbose ) {
     $st->( "Number of files OK:"	  , $f_ok    );
     $st->( "Number of files utimed:"	  , $f_ts    );
     $st->( "Number of files downloaded:"  , $f_dl    );
-    $st->( "Number of files ".($delete ? "deleteed" : "to delete").":",
+    $st->( "Number of files missing:"     , $f_miss  );
+    $st->( "Number of files ".($delete ? "deleted" : "to delete").":",
 	   $d_count );
 }
 
@@ -139,70 +141,87 @@ sub process_collection {
     my $did;
     if ( $r->{type} eq 'folder' ) {
 	# Folder. Get its contents.
-	my $c = $so->get_url_xml( $r->{contents} );
 	my $files = get_filelist( join( "/", @$path ) );
 
-	# Folders can contain folders, and files. Process folders first.
-	if ( $c->{collection} ) {
-	    my $c = $c->{collection};
-	    $c = [ $c ] unless UNIVERSAL::isa( $c, 'ARRAY' );
-	    foreach my $coll ( @$c ) {
-		delete( $files->{$coll->{displayName}} );
-		$c_total++;
-		# Handle select/resume.
-		next unless selectresume( $coll->{displayName}, $depth );
-		$c_count++;
+	# Get the data. Note that this may be chunked.
+	my $c = $so->get_url_xml( $r->{contents} );
+	my $has_more = 1;
 
-		# Recurse.
-		process_collection( $path, $coll );
-	    }
-	}
+	while ( $has_more ) {
 
-	if ( $c->{file} ) {
-	    my $c = $c->{file};
-	    $c = [ $c ] unless UNIVERSAL::isa( $c, 'ARRAY' );
-	    foreach my $file ( @$c ) {
-		delete( $files->{$file->{displayName}} );
-		$f_total++;
-		# Handle select/resume.
-		next unless selectresume( $file->{displayName}, $depth );
-		$f_count++;
+	    # Folders can contain folders, and files. Process folders first.
+	    if ( $c->{collection} ) {
+		my $ci = $c->{collection};
+		$ci = [ $ci ] unless UNIVERSAL::isa( $ci, 'ARRAY' );
+		foreach my $coll ( @$ci ) {
+		    delete( $files->{$coll->{displayName}} );
+		    $c_total++;
+		    # Handle select/resume.
+		    next unless selectresume( $coll->{displayName}, $depth );
+		    $c_count++;
 
-		my $fn = join( "/", @$path, $file->{displayName} );
-		warn( $fn, "\n" ) if $verbose > 1;
-		my $mtime = $so->ts_deparse($file->{lastModified});
-
-		# Depending on the file properties, update the local copy.
-
-		if ( -e $fn ) {
-		    my @st = stat(_);
-		    if ( $st[7] == $file->{size} && $st[9] == $mtime ) {
-			# Local file exists with the same size/mtime.
-			warn( "    OK ", $mtime, " ", $file->{size}, "\n" )
-			  if $verbose > 1;
-			$f_ok++;
-			next;
-		    }
-		    elsif ( 0 and $st[7] == $file->{size} ) {
-			# Temporary facility to update timestamps of files
-			# that have been added otherwise.
-			utime( $mtime, $mtime, $fn ) or warn("utime($fn): $!\n");
-			warn( "    Updated timestamp $st[9] -> ", $mtime, " ",
-			      $file->{size}, "\n" ) if $verbose > 1;
-			$f_ts++;
-			next;
-		    }
-		    else {
-			warn( "    Needs updating ", $mtime, " ",
-			      $file->{size}, "\n" ) if $verbose > 1;
-		    }
+		    # Recurse.
+		    process_collection( $path, $coll );
 		}
 
-		warn( $fn, "\n" ) if $verbose && $verbose <= 1;
+	    }
 
-		# Download the file.
-		save_file( $fn, $file->{fileData}, $mtime );
-		$f_dl++;
+	    if ( $c->{file} ) {
+		my $ci = $c->{file};
+		$ci = [ $ci ] unless UNIVERSAL::isa( $ci, 'ARRAY' );
+		foreach my $file ( @$ci ) {
+		    delete( $files->{$file->{displayName}} );
+		    $f_total++;
+		    # Handle select/resume.
+		    next unless selectresume( $file->{displayName}, $depth );
+		    $f_count++;
+
+		    my $fn = join( "/", @$path, $file->{displayName} );
+		    warn( $fn, "\n" ) if $verbose > 1;
+		    my $mtime = $so->ts_deparse($file->{lastModified});
+
+		    # Depending on the file properties, update the local copy.
+
+		    if ( -e $fn ) {
+			my @st = stat(_);
+			if ( $st[7] == $file->{size} && $st[9] == $mtime ) {
+			    # Local file exists with the same size/mtime.
+			    warn( "    OK ", $mtime, " ", $file->{size}, "\n" )
+			      if $verbose > 1;
+			    $f_ok++;
+			    next;
+			}
+			elsif ( 0 and $st[7] == $file->{size} ) {
+			    # Temporary facility to update timestamps of files
+			    # that have been added otherwise.
+			    utime( $mtime, $mtime, $fn ) or warn("utime($fn): $!\n");
+			    warn( "    Updated timestamp $st[9] -> ", $mtime, " ",
+				  $file->{size}, "\n" ) if $verbose > 1;
+			    $f_ts++;
+			    next;
+			}
+			elsif ( $file->{presentOnServer} eq 'false' ) {
+			    warn( "    Needs updating but file is not on server ", $mtime, " ",
+				  $file->{size}, "\n" ) if $verbose > 1;
+			    $f_miss++;
+			    next;
+			}
+			else {
+			    warn( "    Needs updating ", $mtime, " ",
+				  $file->{size}, "\n" ) if $verbose > 1;
+			}
+		    }
+
+		    warn( $fn, "\n" ) if $verbose && $verbose <= 1;
+		    # Download the file.
+		    save_file( $fn, $file->{fileData}, $mtime );
+		    $f_dl++;
+		}
+	    }
+
+	    if ( $has_more = $c->{hasMore} eq 'true' ) {
+		# Retrieve next chunk and proceed.
+		$c = $so->get_url_xml( $r->{contents} . "?start=" . ( $c->{end}+1) );
 	    }
 	}
 
@@ -226,6 +245,7 @@ sub save_file {
 
     # Download the file.
     print STDERR ( ts(), "    Downloading... ") if $verbose;
+    print STDERR ( ">>", $url, "<< " ) if $debug;
     my $data = $so->get_url_data($url);
 
     # Save to disk.
@@ -291,8 +311,15 @@ sub wc_compile {
     my @ret;
     foreach ( split( '/', $fnpat ) ) {
 	my $p = quotemeta($_);
+	# No need to escape -, in fact, we need them bare.
+	$p =~ s/\\-/-/g;
+	# * -> .*
 	$p =~ s/\\\*/.*/g;
+	# ? -> .
 	$p =~ s/\\\?/./g;
+	# [...] -> [...]
+	$p =~ s/\\\[(.*)\\\]/[$1]/g;
+
 	push( @ret, qr/^(?:$p)$/i );
     }
     return @ret;
@@ -382,16 +409,16 @@ mirror_sync [options]
 When processing a hierarchy of folders, only process the named folder.
 
 The folder name should be a relative file name, starting at the top
-level of the share. Shell wildcards C<*> and C<?> are allowed. Path
-matching is case idenpendent.
+level of the share. Shell wildcards C<*> and C<?> are allowed, as are
+simple classes like C<[A-L]>. Path matching is case idenpendent.
 
 =item B<--resume> I<path>
 
 When processing a hierarchy of folders, start at the named folder.
 
 The folder name should be a relative file name, starting at the top
-level of the share. Shell wildcards C<*> and C<?> are allowed. Path
-matching is case idenpendent.
+level of the share. Shell wildcards C<*> and C<?> are allowed, as are
+simple classes like C<[A-L]>. Path matching is case idenpendent.
 
 =item B<--config> I<file>
 

@@ -1,5 +1,9 @@
 Revision history for SugarSync-API
 
+0.06	
+	(mirror_share 0.05) Handle chunking (hasMore).
+	Skip files that are not presentOnServer.
+
 0.05	2011-09-04
 	(mirror_share) Fix problem with directory creation.
 

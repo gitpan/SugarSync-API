@@ -21,7 +21,7 @@ SugarSync::API - Basic API to SugarSync cloud file sharing.
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 =head1 SYNOPSIS
 
@@ -230,16 +230,17 @@ sub get_url_data {
     my $res = $ua->get($url);
     unless ( $res->is_success ) {
 	my $line = $res->status_line;
-	if ( $line =~ /^(401)/ && $error++ < 5 ) {
+	if ( $line =~ /^(401)/ && $error++ < 10 ) {
 	    # Authentication token expired.
-	    warn("Reauth... ($line)\n");
+	    warn("Reauth... ($line) #$error\n");
+	    sleep( $error || 1 );
 	    $self->get_auth;
 	    return $self->get_url_data($url);
 	}
-	elsif ( $line =~ /^(50\d)/ && $error++ < 5 ) {
+	elsif ( $line =~ /^(50\d)/ && $error++ < 10 ) {
 	    # Server unavailable of some sort.
-	    warn("Retry... ($line)\n");
-	    sleep(1);
+	    warn("Retry... ($line) #$error\n");
+	    sleep( $error || 1);
 	    return $self->get_url_data($url);
 	}
 	Carp::croak( $line );
